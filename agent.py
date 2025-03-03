@@ -60,6 +60,9 @@ class Shepherd(Agent):
       self.recency_bias = None
     if 'similarity' in agent_variables: #NOTE Similarity may only applied for harvest actions presently, and doesn't work with recency bias.
       self.similarity = agent_variables['similarity']
+      if self.similarity:
+        act_grain = self.agent_variables['action_set']['sheep_count_if_seen']['grain']
+        self.sim_weight = exp(-act_grain)
     else:
       self.similarity = False
     if 'altruism' in agent_variables:
@@ -175,7 +178,6 @@ class Shepherd(Agent):
           self.memory['move_if_unseen'][self.period_strategy['move_if_unseen']] = (1-self.recency_bias)*existing_score + (self.recency_bias)*r
         else:
           self.memory['move_if_unseen'][self.period_strategy['move_if_unseen']] = ((freq-1)/freq)*existing_score + (1/freq)*r
-
       else:
         existing_score = self.memory['move_if_seen'][self.period_strategy['move_if_seen']]
         self.choice_freq['move_if_seen'][self.period_strategy['move_if_seen']] += 1
@@ -194,20 +196,18 @@ class Shepherd(Agent):
           self.memory['sheep_count_if_unseen'][self.period_strategy['sheep_count_if_unseen']] = (1-self.recency_bias)*existing_score + (self.recency_bias)*r
         else:
           self.memory['sheep_count_if_unseen'][self.period_strategy['sheep_count_if_unseen']] = ((freq-1)/freq)*existing_score + (1/freq)*r
-          if self.similarity:
-            #Adjust payoffs of actions 1 higher and 1 lower:
-            act_grain = self.agent_variables['action_set']['sheep_count_if_unseen']['grain']
-            sim_weight = exp(-act_grain)
-            #Checking if -1 position is in range:
-            act_pos = self.actions_avail['sheep_count_if_unseen'].index(self.period_strategy['sheep_count_if_unseen'])
-            if act_pos != 0:
-              act_L = self.actions_avail['sheep_count_if_unseen'][act_pos-1]
-              freq_L = self.choice_freq['sheep_count_if_unseen'][act_L] + sim_weight
-              self.memory['sheep_count_if_unseen'][act_L] = ((freq_L - sim_weight)/freq_L)*existing_score + (sim_weight/freq_L)*r
-            if act_pos != len(self.actions_avail['sheep_count_if_unseen']):
-              act_H = self.actions_avail['sheep_count_if_unseen'][act_pos + 1]
-              freq_H = self.choice_freq['sheep_count_if_unseen'][act_H] + sim_weight
-              self.memory['sheep_count_if_unseen'][act_H] = ((freq_H - sim_weight)/freq_H)*existing_score + (sim_weight/freq_H)*r
+        if self.similarity:
+          act_pos = self.actions_avail['sheep_count_if_unseen'].index(self.period_strategy['sheep_count_if_unseen'])
+          if act_pos != 0:
+            act_L = self.actions_avail['sheep_count_if_unseen'][act_pos-1]
+            self.choice_freq['sheep_count_if_unseen'][act_L] += self.sim_weight
+            freq_L = self.choice_freq['sheep_count_if_unseen'][act_L]
+            self.memory['sheep_count_if_unseen'][act_L] = ((freq_L - self.sim_weight)/freq_L)*existing_score + (self.sim_weight/freq_L)*r
+          if act_pos < len(self.actions_avail['sheep_count_if_unseen']) -1:
+            act_H = self.actions_avail['sheep_count_if_unseen'][act_pos + 1]
+            self.choice_freq['sheep_count_if_unseen'][act_H] += self.sim_weight
+            freq_H = self.choice_freq['sheep_count_if_unseen'][act_H]
+            self.memory['sheep_count_if_unseen'][act_H] = ((freq_H - self.sim_weight)/freq_H)*existing_score + (self.sim_weight/freq_H)*r
       else:
         existing_score = self.memory['sheep_count_if_seen'][self.period_strategy['sheep_count_if_seen']]
         self.choice_freq['sheep_count_if_seen'][self.period_strategy['sheep_count_if_seen']] += 1
@@ -216,19 +216,18 @@ class Shepherd(Agent):
           self.memory['sheep_count_if_seen'][self.period_strategy['sheep_count_if_seen']] = (1-self.recency_bias)*existing_score + (self.recency_bias)*r
         else:
           self.memory['sheep_count_if_seen'][self.period_strategy['sheep_count_if_seen']] = ((freq-1)/freq)*existing_score + (1/freq)*r
-          if self.similarity:
-            act_grain = self.agent_variables['action_set']['sheep_count_if_seen']['grain']
-            sim_weight = exp(-act_grain)
-            act_pos = self.actions_avail['sheep_count_if_seen'].index(self.period_strategy['sheep_count_if_seen'])
-            if act_pos != 0:
-              act_L = self.actions_avail['sheep_count_if_seen'][act_pos-1]
-              freq_L = self.choice_freq['sheep_count_if_seen'][act_L] + sim_weight
-              self.memory['sheep_count_if_seen'][act_L] = ((freq_L - sim_weight)/freq_L)*existing_score + (sim_weight/freq_L)*r
-            if act_pos != len(self.actions_avail['sheep_count_if_seen']):
-              act_H = self.actions_avail['sheep_count_if_seen'][act_pos + 1]
-              freq_H = self.choice_freq['sheep_count_if_seen'][act_H] + sim_weight
-              self.memory['sheep_count_if_seen'][act_H] = ((freq_H - sim_weight)/freq_H)*existing_score + (sim_weight/freq_H)*r
-        
+        if self.similarity:
+          act_pos = self.actions_avail['sheep_count_if_seen'].index(self.period_strategy['sheep_count_if_seen'])
+          if act_pos != 0:
+            act_L = self.actions_avail['sheep_count_if_seen'][act_pos-1]
+            self.choice_freq['sheep_count_if_seen'][act_L] += self.sim_weight
+            freq_L = self.choice_freq['sheep_count_if_seen'][act_L]
+            self.memory['sheep_count_if_seen'][act_L] = ((freq_L - self.sim_weight)/freq_L)*existing_score + (self.sim_weight/freq_L)*r
+          if act_pos < len(self.actions_avail['sheep_count_if_seen']) -1:
+            act_H = self.actions_avail['sheep_count_if_seen'][act_pos + 1]
+            self.choice_freq['sheep_count_if_seen'][act_H] += self.sim_weight
+            freq_H = self.choice_freq['sheep_count_if_seen'][act_H]
+            self.memory['sheep_count_if_seen'][act_H] = ((freq_H - self.sim_weight)/freq_H)*existing_score + (self.sim_weight/freq_H)*r        
     else:
       #---Updating Harvest Decision in Non-Spatial model---
       existing_score = self.memory['sheep_count_if_seen'][self.period_strategy['sheep_count_if_seen']]
@@ -238,14 +237,18 @@ class Shepherd(Agent):
         self.memory['sheep_count_if_seen'][self.period_strategy['sheep_count_if_seen']] = (1-self.recency_bias)*existing_score + (self.recency_bias)*r
       else:
         self.memory['sheep_count_if_seen'][self.period_strategy['sheep_count_if_seen']] = ((freq-1)/freq)*existing_score + (1/freq)*r
-      #if self.id == 0:
-        #if self.model.period % 100 == 0 or self.model.period <5:
-        #  print(f'freq: {freq}')
-        #  print(f'r: {r}')
-        #  print(f'weight on new score: {(1/freq)}')
-        #  print(f'existing score: {existing_score}')
-        #  print(f'weight on existing score: {((freq-1)/freq)}')
-        #  print(f"final new score: {self.memory['sheep_count_if_seen'][self.period_strategy['sheep_count_if_seen']]}")
+      if self.similarity:
+        act_pos = self.actions_avail['sheep_count_if_seen'].index(self.period_strategy['sheep_count_if_seen'])
+        if act_pos != 0:
+          act_L = self.actions_avail['sheep_count_if_seen'][act_pos-1]
+          self.choice_freq['sheep_count_if_seen'][act_L] += self.sim_weight
+          freq_L = self.choice_freq['sheep_count_if_seen'][act_L]
+          self.memory['sheep_count_if_seen'][act_L] = ((freq_L - self.sim_weight)/freq_L)*existing_score + (self.sim_weight/freq_L)*r
+        if act_pos < len(self.actions_avail['sheep_count_if_seen']) - 1:
+          act_H = self.actions_avail['sheep_count_if_seen'][act_pos + 1]
+          self.choice_freq['sheep_count_if_seen'][act_H] += self.sim_weight
+          freq_H = self.choice_freq['sheep_count_if_seen'][act_H]
+          self.memory['sheep_count_if_seen'][act_H] = ((freq_H - self.sim_weight)/freq_H)*existing_score + (self.sim_weight/freq_H)*r
   
   def store_attraction_snapshot(self, period):
     '''Stores probability of taking each action at this period of time.'''

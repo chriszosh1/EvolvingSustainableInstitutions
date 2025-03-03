@@ -1,0 +1,2 @@
+depth, fine_vector_0, fine_vector_1, fine_vector_2, fine_vector_3, fine_vector_4, fine_vector_5, fitness
+12, 0.0, 0.0, 0.0, 0.99, 1.7, 10.0, 692868.1453768786

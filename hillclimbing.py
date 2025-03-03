@@ -184,15 +184,18 @@ def SA_hillclimb(param_vars, search_vars, pop_size, depth, fitness_fnc, starting
         for r in results:
             if not r.exception():
                 performances.append(r.result())
-            #else:
-            #    raise Exception(f"Got exception for a result from parallel process")
+            else:
+                print(r.exception())
+                raise Exception(f"Got exception for a result from parallel process")
         #Step 2 - Compare each to existing to see which to keep:
         for p in performances:
+            #print(p)
             if return_last_act:
-                mem = _update_memory(mem, p[0], p[1][0], final_choices = p[1][1])
+                mem = _update_memory(mem, p[0], p[1]['csw'], final_choices = p[1]['last_act'])
             else:
-                mem = _update_memory(mem, p[0], p[1])
+                mem = _update_memory(mem, p[0], p[1]['csw'])
             bv = mem['action']
+            
         if output_to_file:
             lol = open(file_name,'a')
             if return_last_act:
